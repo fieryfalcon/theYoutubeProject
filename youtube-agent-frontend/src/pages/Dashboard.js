@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button, Typography, message, Spin } from "antd";
 import { useNavigate } from "react-router-dom";
-import { fetchYouTubeURL } from "../authApipi/authApi";
+import { fetchYouTubeURL } from "../api/authApi";
 
 const { Title, Text } = Typography;
 
