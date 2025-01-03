@@ -1,35 +1,57 @@
-import React from "react";
-import { auth } from "../utils/firebase";
+import React, { useState, useEffect } from "react";
+import { Button, Typography, message, Spin } from "antd";
 import { useNavigate } from "react-router-dom";
-import Button from "../components/button";
-import styles from "../styles/Dashboard.module.css";
+import { fetchYouTubeURL } from "../authApipi/authApi";
+
+const { Title, Text } = Typography;
 
 const Dashboard = () => {
+  const [videoURL, setVideoURL] = useState("");
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const handleLogout = async () => {
-    try {
-      await auth.signOut();
-      navigate("/");
-    } catch (error) {
-      console.error(error.message);
-    }
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetchYouTubeURL();
+        if (response.success) {
+          setVideoURL(response.url);
+        } else {
+          message.error("Failed to fetch video URL.");
+        }
+      } catch (error) {
+        console.error("Error fetching video URL:", error);
+        message.error("Error fetching video URL.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleDeleteAccount = async () => {
-    try {
-      await auth.currentUser.delete();
-      navigate("/");
-    } catch (error) {
-      console.error(error.message);
-    }
+    fetchData();
+  }, []);
+
+  const handleLogout = () => {
+    navigate("/");
   };
 
   return (
-    <div className={styles.container}>
-      <h1>Welcome to the Dashboard</h1>
-      <Button onClick={handleLogout}>Logout</Button>
-      <Button onClick={handleDeleteAccount}>Delete Account</Button>
+    <div style={{ padding: 24 }}>
+      <Title level={3}>Dashboard</Title>
+      {loading ? (
+        <Spin size="large" />
+      ) : videoURL ? (
+        <Text>Current YouTube Video URL: {videoURL}</Text>
+      ) : (
+        <Text>No video is currently playing.</Text>
+      )}
+      <Button
+        type="primary"
+        danger
+        style={{ marginTop: 16 }}
+        onClick={handleLogout}
+      >
+        Logout
+      </Button>
     </div>
   );
 };

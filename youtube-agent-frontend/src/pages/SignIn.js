@@ -1,154 +1,90 @@
 import React, { useState } from "react";
-import { auth, googleProvider } from "../utils/firebase";
-import {
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  createUserWithEmailAndPassword,
-  sendPasswordResetEmail,
-  updateProfile, // Firebase method to update user profile
-} from "firebase/auth";
+import { Button, Form, Input, Typography, message } from "antd";
 import { useNavigate } from "react-router-dom";
-import { upsertUser } from "../api/userApi"; // Import the API function
-import InputField from "../components/InputField";
-import Button from "../components/button";
-import GoogleButton from "../components/GoogleButton";
-import styles from "../styles/AuthForm.module.css";
+import { login, googleSignIn } from "../api/authApi";
+
+const { Title, Text } = Typography;
 
 const SignIn = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [name, setName] = useState(""); // New state for name
-  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleUpsert = async (user) => {
-    const userData = {
-      email: user.email,
-      name: user.displayName || name || "Anonymous",
-      profilePicture: user.photoURL || "https://example.com/default-avatar.png",
-      tokens: 50, // Default tokens for new users
-      role: "basic",
-      authProvider: user.providerData[0]?.providerId || "emailPassword",
-      deleted: false,
-    };
-
+  const handleSignIn = async (values) => {
+    setLoading(true);
     try {
-      await upsertUser(user.uid, userData); // Call the backend
-      console.log("User upserted successfully");
+      const response = await login(values);
+      if (response.success) {
+        navigate("/dashboard");
+        message.success("Login successful!");
+      } else {
+        message.error(response.message);
+      }
     } catch (error) {
-      console.error("Failed to upsert user:", error);
-    }
-  };
-
-  const handleLogin = async () => {
-    try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = userCredential.user;
-      await handleUpsert(user); // Call upsert after login
-      navigate("/dashboard");
-    } catch (error) {
-      console.error(error.message);
+      message.error("Login failed!");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      await handleUpsert(user); // Call upsert after Google Sign-In
-      navigate("/dashboard");
+      const response = await googleSignIn();
+      if (response.success) {
+        navigate("/dashboard");
+        message.success("Google Sign-In successful!");
+      }
     } catch (error) {
-      console.error(error.message);
-    }
-  };
-
-  const handleSignUp = async () => {
-    if (password !== confirmPassword) {
-      alert("Passwords do not match!");
-      return;
-    }
-
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = userCredential.user;
-
-      // Update Firebase user profile with the name
-      await updateProfile(user, { displayName: name });
-
-      // Call upsert after signup
-      await handleUpsert({ ...user, displayName: name });
-      navigate("/dashboard");
-    } catch (error) {
-      console.error(error.message);
-    }
-  };
-
-  const handlePasswordReset = async () => {
-    try {
-      await sendPasswordResetEmail(auth, email);
-      alert("Password reset link sent!");
-    } catch (error) {
-      console.error(error.message);
+      message.error("Google Sign-In failed!");
     }
   };
 
   return (
-    <div className={styles.container}>
-      <h1>{isCreatingAccount ? "Create Account" : "Sign In"}</h1>
-      {isCreatingAccount && (
-        <InputField
-          type="text"
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-      )}
-      <InputField
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <InputField
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      {isCreatingAccount && (
-        <InputField
-          type="password"
-          placeholder="Confirm Password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-        />
-      )}
-      {isCreatingAccount ? (
-        <>
-          <Button onClick={handleSignUp}>Create Account</Button>
-          <Button onClick={() => setIsCreatingAccount(false)}>
-            Back to Sign In
-          </Button>
-        </>
-      ) : (
-        <>
-          <Button onClick={handleLogin}>Sign In</Button>
-          <GoogleButton onClick={handleGoogleSignIn} />
-          <Button onClick={() => setIsCreatingAccount(true)}>
-            Create Account
-          </Button>
-          <Button onClick={handlePasswordReset}>Forgot Password</Button>
-        </>
-      )}
+    <div
+      style={{
+        maxWidth: 400,
+        margin: "50px auto",
+        padding: 24,
+        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+        borderRadius: 8,
+      }}
+    >
+      <Title level={3} style={{ textAlign: "center" }}>
+        Sign In
+      </Title>
+      <Form layout="vertical" onFinish={handleSignIn}>
+        <Form.Item
+          label="Email"
+          name="email"
+          rules={[{ required: true, message: "Please input your email!" }]}
+        >
+          <Input type="email" placeholder="Enter your email" />
+        </Form.Item>
+        <Form.Item
+          label="Password"
+          name="password"
+          rules={[{ required: true, message: "Please input your password!" }]}
+        >
+          <Input.Password placeholder="Enter your password" />
+        </Form.Item>
+        <Button type="primary" htmlType="submit" block loading={loading}>
+          Sign In
+        </Button>
+      </Form>
+      <Button style={{ marginTop: 16 }} block onClick={handleGoogleSignIn}>
+        Sign in with Google
+      </Button>
+      <div style={{ marginTop: 16 }}>
+        <Text>
+          Don't have an account?{" "}
+          <a onClick={() => navigate("/signup")}>Create Account</a>
+        </Text>
+      </div>
+      <div style={{ marginTop: 8 }}>
+        <Text>
+          Forgot your password?{" "}
+          <a onClick={() => navigate("/forgot-password")}>Reset Password</a>
+        </Text>
+      </div>
     </div>
   );
 };
