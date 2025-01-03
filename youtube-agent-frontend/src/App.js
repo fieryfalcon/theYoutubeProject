@@ -1,13 +1,13 @@
 import React from "react";
-import { BrowserRouter as Router } from "react-router-dom";
+import { HashRouter, BrowserRouter as Router } from "react-router-dom";
 import AppRoutes from "./routes/AppRoutes";
-import "./styles/Global.css"; 
+import "./styles/Global.css";
 
 function App() {
   return (
-    <Router>
-      <AppRoutes />
-    </Router>
+    <HashRouter>
+        <AppRoutes />
+    </HashRouter>
   );
 }
 
